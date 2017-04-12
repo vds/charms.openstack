@@ -26,21 +26,12 @@ import charms.reactive.bus
 import charmhelpers.contrib.hahelpers.cluster as ch_cluster
 import charmhelpers.contrib.network.ip as ch_ip
 import charmhelpers.contrib.openstack.utils as ch_utils
+import charmhelpers.contrib.openstack.context as ch_context
 import charmhelpers.core.hookenv as hookenv
 import charmhelpers.core.host as ch_host
 import charms_openstack.ip as os_ip
 import charms_openstack.os_release_data as os_release_data
 
-from charmhelpers.fetch import apt_install
-
-try:
-    import psutil
-except ImportError:
-    if six.PY2:
-        apt_install('python-psutil', fatal=True)
-    else:
-        apt_install('python3-psutil', fatal=True)
-    import psutil
 
 ADDRESS_TYPES = os_ip.ADDRESS_MAP.keys()
 
@@ -496,6 +487,9 @@ class APIConfigurationAdapter(ConfigurationAdapter):
     common accross most OpenstackAPI services
     """
 
+    worker_config = {k:v for k,v in ch_context.WSGIWorkerConfigContext()()
+                     if k in ['processes', 'admin_processes', 'public_processes']}
+
     def __init__(self, port_map=None, service_name=None, charm_instance=None):
         """
         Note passing port_map and service_name is deprecated, but supported for
@@ -842,22 +836,6 @@ class APIConfigurationAdapter(ConfigurationAdapter):
     @property
     def memcache_url(self):
         return 'inet6:{}:{}'.format(self.memcache_host, self.memcache_port)
-
-    @property
-    def num_cpus(self):
-        # NOTE: use cpu_count if present (16.04 support)
-        if hasattr(psutil, 'cpu_count'):
-            return psutil.cpu_count()
-        else:
-            return psutil.NUM_CPUS
-
-    @property
-    def workers(self):
-        multiplier = getattr(self, "worker_multiplier", 0)
-        count = int(self.num_cpus * multiplier)
-        if multiplier > 0 and count == 0:
-            return 1
-        return count
 
 
 def make_default_relation_adapter(base_cls, relation, properties):
