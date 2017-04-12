@@ -31,6 +31,17 @@ import charmhelpers.core.host as ch_host
 import charms_openstack.ip as os_ip
 import charms_openstack.os_release_data as os_release_data
 
+from charmhelpers.fetch import apt_install
+
+try:
+    import psutil
+except ImportError:
+    if six.PY2:
+        apt_install('python-psutil', fatal=True)
+    else:
+        apt_install('python3-psutil', fatal=True)
+    import psutil
+
 ADDRESS_TYPES = os_ip.ADDRESS_MAP.keys()
 
 # handle declarative adapter properties using a decorator and simple functions
@@ -487,7 +498,7 @@ class APIConfigurationAdapter(ConfigurationAdapter):
 
     def __init__(self, port_map=None, service_name=None, charm_instance=None):
         """
-        Note passing port_map and service_name is deprecated, but supporte for
+        Note passing port_map and service_name is deprecated, but supported for
         backwards compatibility.  The port_map and service_name can be got from
         the self.charm_instance weak reference.
         :param  port_map: Map containing service names and the ports used e.g.
@@ -831,6 +842,22 @@ class APIConfigurationAdapter(ConfigurationAdapter):
     @property
     def memcache_url(self):
         return 'inet6:{}:{}'.format(self.memcache_host, self.memcache_port)
+
+    @property
+    def num_cpus(self):
+        # NOTE: use cpu_count if present (16.04 support)
+        if hasattr(psutil, 'cpu_count'):
+            return psutil.cpu_count()
+        else:
+            return psutil.NUM_CPUS
+
+    @property
+    def workers(self):
+        multiplier = getattr(self, "worker_multiplier", 0)
+        count = int(self.num_cpus * multiplier)
+        if multiplier > 0 and count == 0:
+            return 1
+        return count
 
 
 def make_default_relation_adapter(base_cls, relation, properties):
