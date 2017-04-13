@@ -487,7 +487,7 @@ class APIConfigurationAdapter(ConfigurationAdapter):
     common accross most OpenstackAPI services
     """
 
-    worker_config = {k: v for k, v in ch_context.WSGIWorkerConfigContext()()
+    worker_config = {k: v for k, v in ch_context.WSGIWorkerConfigContext()().items()
                      if k in ['processes',
                               'admin_processes', 'public_processes']}
 

@@ -411,12 +411,9 @@ class TestAPIConfigurationAdapter(unittest.TestCase):
     def test_worker_config(self):
         worker_config = {'processes': 1.0, 'admin_processes': 0.75,
                          'public_processes': 0.25}
-        with mock.patch.object(
-                context.WSGIWorkerConfigContext,
-                '__call__',
-                return_value=worker_config):
-            c = adapters.APIConfigurationAdapter()
-            self.assertEqual(c.worker_config['processes'], 1.0)
+        context.WSGIWorkerConfigContext=mock.Mock(return_value=worker_config)
+        c = adapters.APIConfigurationAdapter()
+        self.assertEqual(c.worker_config['processes'], 1.0)
 
     def test_class(self):
         test_config = {
